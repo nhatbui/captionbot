@@ -27,7 +27,7 @@ type CaptionBotResponse struct {
 }
 
 type CaptionBotClientState struct {
-	waterMark string
+	waterMark      string
 	conversationId string
 }
 
@@ -66,10 +66,10 @@ func MakeValuesFromRequestData(requestData CaptionBotRequest) url.Values {
 
 func SanitizeCaptionRawData(data []byte) []byte {
 	// Remove starting and trailing double-quotes
-	trimmed := data[1:len(data)-1]
+	trimmed := data[1 : len(data)-1]
 
 	// Replace escaped double-quote with regular double-quote
-        unescaped := strings.Replace(string(trimmed), "\\\"", "\"", -1)
+	unescaped := strings.Replace(string(trimmed), "\\\"", "\"", -1)
 
 	// Replace escaped newlines with regular newlines
 	unescaped = strings.Replace(unescaped, "\\\\n", " ", -1)
