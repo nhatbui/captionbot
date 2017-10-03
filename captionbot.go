@@ -32,10 +32,10 @@ type CaptionBotResponse struct {
 }
 
 // Struct to hold "session" state.
-// - conversationId: given during call to Initialize()
-//                   Should be used for subsequent requests.
-// - waterMark:      is updated per URL caption response.
-// Note: consequences of not maintaining state is unknown.
+// 1) conversationId: given during call to Initialize()
+//                    Should be used for subsequent requests.
+// 2) waterMark:      is updated per URL caption response.
+// (Note: consequences of not maintaining state is unknown.)
 type CaptionBotClientState struct {
 	waterMark      string
 	conversationId string
@@ -65,6 +65,10 @@ func CreateCaptionTask(data bytes.Buffer) {
 	if postErr != nil {
 		panic(postErr)
 	}
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		panic("Non 2XX status code when POST-ing caption task.")
+	}
 }
 
 // Create Values struct from state struct
@@ -78,8 +82,8 @@ func MakeValuesFromState(imgURL string, state CaptionBotClientState) url.Values 
 
 // Sanitize raw caption response from GET request.
 // Currently, this method will:
-// - remove starting and trailing double-quotes.
-// - replace escaped double-quotes with double-quotes.
+// 1) remove starting and trailing double-quotes.
+// 2) replace escaped double-quotes with double-quotes.
 func SanitizeCaptionByteArray(data []byte) []byte {
 	// Remove starting and trailing double-quotes
 	trimmed := data[1 : len(data)-1]
@@ -92,7 +96,7 @@ func SanitizeCaptionByteArray(data []byte) []byte {
 
 // Sanitize caption string.
 // Currently, this method will:
-// - remove escaped newlines with newlines.
+// 1) remove escaped newlines with newlines.
 func SanitizeCaptionString(caption string) string {
 	// Replace escaped newlines with regular newlines
 	return strings.Replace(caption, "\\n", "\n", -1)
