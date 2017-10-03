@@ -24,6 +24,11 @@ func main() {
 	imgURL := "http://www.nhatqbui.com/assets/me.jpg"
 
 	fmt.Println(bot.URLCaption(imgURL))
+
+	// Or upload it
+
+	imgFile := "/path/to/image.jpg"
+	fmt.Println(bot.UploadCaption(imgFile))
 }
 ```
 
