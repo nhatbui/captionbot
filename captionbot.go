@@ -2,12 +2,12 @@
 package captionbot
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"bytes"
-	"fmt"
 	"strings"
 )
 
@@ -92,7 +92,7 @@ func SanitizeCaptionByteArray(data []byte) []byte {
 
 // Sanitize caption string.
 // Currently, this method will:
-// - remove escaped newlines with newlines. 
+// - remove escaped newlines with newlines.
 func SanitizeCaptionString(caption string) string {
 	// Replace escaped newlines with regular newlines
 	return strings.Replace(caption, "\\n", "\n", -1)
@@ -139,7 +139,7 @@ func (captionBot *CaptionBot) URLCaption(url string) string {
 	}
 
 	/*
-	  - This request kicks off a caption task on the server for 
+	  - This request kicks off a caption task on the server for
 	    the picture identified by `requestData.UserMessage`
 	  - the result will need to be retrieved with a subseqent
 	    GET request using the above data as URL-encoded params.
@@ -185,4 +185,3 @@ func (captionBot *CaptionBot) URLCaption(url string) string {
 
 	return SanitizeCaptionString(caption)
 }
-
