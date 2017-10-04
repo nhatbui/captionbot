@@ -80,9 +80,9 @@ func CreateCaptionTask(data bytes.Buffer) error {
 		return err
 	}
 	req.Header.Add("Content-Type", "application/json; charset=utf8")
-	resp, postErr := http.DefaultClient.Do(req)
-	if postErr != nil {
-		return postErr
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
 	}
 	defer resp.Body.Close()
 
@@ -105,15 +105,15 @@ func MakeValuesFromState(imgURL string, state CaptionBotClientState) url.Values 
 // Send request to /init endpoint to retrieve conversationId.
 // This is a session variable used in the state struct.
 func (captionBot *CaptionBot) Initialize() error {
-	resp, getErr := http.Get(BASE_URL + "init")
-	if getErr != nil {
-		return getErr
+	resp, err := http.Get(BASE_URL + "init")
+	if err != nil {
+		return err
 	}
 	defer resp.Body.Close()
 
-	bodyByteArray, bodyErr := ioutil.ReadAll(resp.Body)
-	if bodyErr != nil {
-		return bodyErr
+	bodyByteArray, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
 	}
 
 	captionBot.state.conversationId = strings.Trim(string(bodyByteArray[:]), "\"")
@@ -158,9 +158,9 @@ func (captionBot *CaptionBot) URLCaption(url string) (string, error) {
 
 	// Actually Query for Caption
 	queryURL := BASE_URL + "/message"
-	resp, getErr := http.Get(queryURL + "?" + v.Encode())
-	if getErr != nil {
-		return "", getErr
+	resp, err := http.Get(queryURL + "?" + v.Encode())
+	if err != nil {
+		return "", err
 	}
 	defer resp.Body.Close()
 
@@ -172,9 +172,8 @@ func (captionBot *CaptionBot) URLCaption(url string) (string, error) {
 
 	// Unmarshal it
 	var captionJSON CaptionBotResponse
-	captionJSONErr := json.Unmarshal([]byte(response), &captionJSON)
-	if captionJSONErr != nil {
-		return "", captionJSONErr
+	if err := json.Unmarshal([]byte(response), &captionJSON); err != nil {
+		return "", err
 	}
 
 	// Update the state with the new watermark.
