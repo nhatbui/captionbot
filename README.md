@@ -8,46 +8,49 @@ Captionbot is a simple API wrapper for https://www.captionbot.ai/
 
 ## Usage
 
-```
+```go
 package main
 
 import (
 	"fmt"
-	"github.com/nhatbui/captionbot"
 	"os"
+
+	"github.com/nhatbui/captionbot"
 )
 
 var (
-    bot *captionbot.CaptionBot
-    caption string
-    err error
+	bot     *captionbot.CaptionBot
+	caption string
+	err     error
 )
 
 func main() {
+
 	bot, err = captionbot.New()
 	if err != nil {
-        fmt.Errorf("error instantiating bot %s", err)
-        os.Exit(-1)
-    }
+		fmt.Printf("error instantiating bot %s", err)
+		os.Exit(1)
+	}
 
+	// caption a remote image by provideing a URL
 	imgURL := "http://www.nhatqbui.com/assets/me.jpg"
 
 	caption, err = bot.URLCaption(imgURL)
-    if err != nil {
-        fmt.Errorf("error uploading caption %s", err)
-        os.Exit(-1)
-    }
-    fmt.Println(caption)
+	if err != nil {
+		fmt.Printf("error uploading caption %s", err)
+		os.Exit(1)
+	}
+	fmt.Println(caption)
 
-    // Or upload it
+	// caption a local image by uploading it
+	imgFile := "./sample.jpg"
 
-    imgFile := "/path/to/image.jpg"
-    caption, err = bot.UploadCaption(imgFile)
-    if err != nil {
-        fmt.Errorf("error uploading caption %s", err)
-        os.Exit(-1)
-    }
-    fmt.Println(caption)
+	caption, err = bot.UploadCaption(imgFile)
+	if err != nil {
+		fmt.Printf("error uploading caption %s", err)
+		os.Exit(1)
+	}
+	fmt.Println(caption)
 }
 ```
 
