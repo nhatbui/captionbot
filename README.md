@@ -14,21 +14,40 @@ package main
 import (
 	"fmt"
 	"github.com/nhatbui/captionbot"
+	"os"
+)
+
+var (
+    bot *captionbot.CaptionBot
+    caption string
+    err error
 )
 
 func main() {
-	bot := captionbot.CaptionBot{}
-	// DON'T FORGET TO INITIALIZE!!!
-	bot.Initialize()
+	bot, err = captionbot.New()
+	if err != nil {
+        fmt.Errorf("error instantiating bot %s", err)
+        os.Exit(-1)
+    }
 
 	imgURL := "http://www.nhatqbui.com/assets/me.jpg"
 
-	fmt.Println(bot.URLCaption(imgURL))
+	caption, err = bot.URLCaption(imgURL)
+    if err != nil {
+        fmt.Errorf("error uploading caption %s", err)
+        os.Exit(-1)
+    }
+    fmt.Println(caption)
 
-	// Or upload it
+    // Or upload it
 
-	imgFile := "/path/to/image.jpg"
-	fmt.Println(bot.UploadCaption(imgFile))
+    imgFile := "/path/to/image.jpg"
+    caption, err = bot.UploadCaption(imgFile)
+    if err != nil {
+        fmt.Errorf("error uploading caption %s", err)
+        os.Exit(-1)
+    }
+    fmt.Println(caption)
 }
 ```
 
