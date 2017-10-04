@@ -53,27 +53,43 @@ type CaptionBot struct {
 
 // Interface for methods for one CaptionBot session.
 type CaptionBotConnection interface {
-	URLCaption(url string) string
-	Initialize() string
+	URLCaption(url string) (string, error)
+	Initialize() (string, error)
+}
+
+func New() (*CaptionBot, error) {
+    var err error
+    cb := &CaptionBot{}
+    err = cb.Initialize()
+    if err != nil {
+        return cb, err
+    }
+
+    return cb, nil
 }
 
 // POST request that starts a URL caption request on the server.
 // Result will need to be retrieved by a subsequent GET request
 // with the same parameters used here.
-func CreateCaptionTask(data bytes.Buffer) {
+func CreateCaptionTask(data bytes.Buffer) error {
 	client := &http.Client{}
 	queryURL := BASE_URL + "/message"
-	req, _ := http.NewRequest("POST", queryURL, &data)
+	req, err := http.NewRequest("POST", queryURL, &data)
+    if err != nil {
+        return err
+    }
 	req.Header.Add("Content-Type", "application/json; charset=utf8")
 	resp, postErr := client.Do(req)
 	defer resp.Body.Close()
 	if postErr != nil {
-		panic(postErr)
+		return postErr
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		panic("Non 2XX status code when POST-ing caption task.")
+		return fmt.Errorf("Non 2XX status code when POST-ing caption task.")
 	}
+
+    return nil
 }
 
 // Create Values struct from state struct
@@ -109,31 +125,31 @@ func SanitizeCaptionString(caption string) string {
 
 // Send request to /init endpoint to retrieve conversationId.
 // This is a session variable used in the state struct.
-func (captionBot *CaptionBot) Initialize() {
+func (captionBot *CaptionBot) Initialize() error {
 	resp, getErr := http.Get(BASE_URL + "init")
 	defer resp.Body.Close()
 	if getErr != nil {
-		panic(getErr)
+		return getErr
 	}
 
 	bodyByteArray, bodyErr := ioutil.ReadAll(resp.Body)
 	if bodyErr != nil {
-		panic(bodyErr)
+		return bodyErr
 	}
 
 	captionBot.state.conversationId = strings.Trim(string(bodyByteArray[:]), "\"")
+    return nil
 }
 
 // Entry method for getting caption for image pointed to by URL.
 // Performs a POST request to start the caption task.
 // Then performs a GET request to retrieve the result.
-func (captionBot *CaptionBot) URLCaption(url string) string {
-	if captionBot.state.conversationId == "" {
-		fmt.Println(
-			"CaptionBot not initialize.",
-			"Please call CaptionBot::Initialize().",
-		)
-		return ""
+func (captionBot *CaptionBot) URLCaption(url string) (string, error) {
+	var err error
+
+    if captionBot.state.conversationId == "" {
+		return "", fmt.Errorf(`CaptionBot not initialize.\n
+                              Please call CaptionBot::Initialize().`)
 	}
 
 	// Create JSON data from state for POST request
@@ -144,7 +160,7 @@ func (captionBot *CaptionBot) URLCaption(url string) string {
 	}
 	jsonData, marshalErr := json.Marshal(requestData)
 	if marshalErr != nil {
-		panic(marshalErr)
+		return "", marshalErr
 	}
 
 	/*
@@ -155,7 +171,9 @@ func (captionBot *CaptionBot) URLCaption(url string) string {
 	*/
 	var data bytes.Buffer
 	data.Write(jsonData)
-	CreateCaptionTask(data)
+	if err = CreateCaptionTask(data); err != nil {
+        return "", err
+    }
 
 	// Create Values struct for URL encoded params
 	v := MakeValuesFromState(url, captionBot.state)
@@ -165,12 +183,12 @@ func (captionBot *CaptionBot) URLCaption(url string) string {
 	resp, getErr := http.Get(queryURL + "?" + v.Encode())
 	defer resp.Body.Close()
 	if getErr != nil {
-		panic(getErr)
+		return "", getErr
 	}
 
 	captionRawData, readBodyErr := ioutil.ReadAll(resp.Body)
 	if readBodyErr != nil {
-		panic(readBodyErr)
+		return "", readBodyErr
 	}
 
 	// We need to format the returned string so Golang can unmarshal it.
@@ -182,7 +200,7 @@ func (captionBot *CaptionBot) URLCaption(url string) string {
 	var captionJSON CaptionBotResponse
 	captionJSONErr := json.Unmarshal(captionData, &captionJSON)
 	if captionJSONErr != nil {
-		panic(captionJSONErr)
+		return "", captionJSONErr
 	}
 
 	// Update the state with the new watermark.
@@ -192,24 +210,24 @@ func (captionBot *CaptionBot) URLCaption(url string) string {
 	//requestedURL := captionJSON.BotMessages[0]
 	caption := captionJSON.BotMessages[1]
 
-	return SanitizeCaptionString(caption)
+	return SanitizeCaptionString(caption), nil
 }
 
 // UploadCaption uploads a file and runs URLCaption on the result
-func (captionBot *CaptionBot) UploadCaption(fileName string) string {
+func (captionBot *CaptionBot) UploadCaption(fileName string) (string, error) {
 	// Make sure file exist, that its readable and then read it into memory
 	if _, err := os.Stat(fileName); os.IsNotExist(err) {
-		panic(err)
+		return "", err
 	}
 
 	file, err := os.Open(fileName)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	fileContents, err := ioutil.ReadAll(file)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	file.Close()
@@ -225,7 +243,7 @@ func (captionBot *CaptionBot) UploadCaption(fileName string) string {
 	h.Set("Content-Type", mimetype)
 	part, err := writer.CreatePart(h)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	// Write the content
@@ -233,12 +251,12 @@ func (captionBot *CaptionBot) UploadCaption(fileName string) string {
 
 	err = writer.Close()
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	req, err := http.NewRequest("POST", fmt.Sprintf("%supload", BASE_URL), postbody)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	req.Header.Add("Content-Type", writer.FormDataContentType())
@@ -248,15 +266,20 @@ func (captionBot *CaptionBot) UploadCaption(fileName string) string {
 	// Send the request
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	// Sanitize reply and return it
-	return captionBot.URLCaption(string(SanitizeCaptionByteArray(body)))
+	urlCaption, err := captionBot.URLCaption(string(SanitizeCaptionByteArray(body)))
+    if err != nil {
+        return "", err
+    }
+
+    return urlCaption, nil
 }
