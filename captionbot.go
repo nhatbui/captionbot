@@ -54,8 +54,10 @@ type CaptionBot struct {
 // Interface for methods for one CaptionBot session.
 type CaptionBotConnection interface {
 	URLCaption(url string) (string, error)
-	Initialize() (string, error)
+	Initialize() error
 }
+
+var _ CaptionBotConnection = (*CaptionBot)(nil)
 
 func New() (*CaptionBot, error) {
 	var err error
