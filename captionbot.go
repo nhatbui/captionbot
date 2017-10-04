@@ -158,9 +158,10 @@ func (captionBot *CaptionBot) URLCaption(url string) (string, error) {
 		UserMessage:    url,
 		WaterMark:      captionBot.state.waterMark,
 	}
-	jsonData, marshalErr := json.Marshal(requestData)
-	if marshalErr != nil {
-		return "", marshalErr
+
+	var data bytes.Buffer
+	if err := json.NewEncoder(&data).Encode(requestData); err != nil {
+		return "", err
 	}
 
 	/*
@@ -169,8 +170,6 @@ func (captionBot *CaptionBot) URLCaption(url string) (string, error) {
 	  - the result will need to be retrieved with a subseqent
 	    GET request using the above data as URL-encoded params.
 	*/
-	var data bytes.Buffer
-	data.Write(jsonData)
 	if err = CreateCaptionTask(data); err != nil {
 		return "", err
 	}
@@ -206,7 +205,7 @@ func (captionBot *CaptionBot) URLCaption(url string) (string, error) {
 	//requestedURL := captionJSON.BotMessages[0]
 	caption := captionJSON.BotMessages[1]
 
-	return SanitizeCaptionString(caption), nil
+	return caption, nil
 }
 
 // UploadCaption uploads a file and runs URLCaption on the result
