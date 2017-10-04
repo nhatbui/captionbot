@@ -13,7 +13,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // Root path of Caption Bot URL.
@@ -111,13 +110,7 @@ func (captionBot *CaptionBot) Initialize() error {
 	}
 	defer resp.Body.Close()
 
-	bodyByteArray, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	captionBot.state.conversationId = strings.Trim(string(bodyByteArray[:]), "\"")
-	return nil
+	return json.NewDecoder(resp.Body).Decode(&captionBot.state.conversationId)
 }
 
 // Entry method for getting caption for image pointed to by URL.
