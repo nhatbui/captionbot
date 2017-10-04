@@ -6,8 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"mime"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -188,4 +193,70 @@ func (captionBot *CaptionBot) URLCaption(url string) string {
 	caption := captionJSON.BotMessages[1]
 
 	return SanitizeCaptionString(caption)
+}
+
+// UploadCaption uploads a file and runs URLCaption on the result
+func (captionBot *CaptionBot) UploadCaption(fileName string) string {
+	// Make sure file exist, that its readable and then read it into memory
+	if _, err := os.Stat(fileName); os.IsNotExist(err) {
+		panic(err)
+	}
+
+	file, err := os.Open(fileName)
+	if err != nil {
+		panic(err)
+	}
+
+	fileContents, err := ioutil.ReadAll(file)
+	if err != nil {
+		panic(err)
+	}
+
+	file.Close()
+
+	// Prepare the post
+	mimetype := mime.TypeByExtension(filepath.Ext(fileName))
+
+	postbody := new(bytes.Buffer)
+	writer := multipart.NewWriter(postbody)
+
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"; filename="%s"`, "file", filepath.Base(fileName)))
+	h.Set("Content-Type", mimetype)
+	part, err := writer.CreatePart(h)
+	if err != nil {
+		panic(err)
+	}
+
+	// Write the content
+	part.Write(fileContents)
+
+	err = writer.Close()
+	if err != nil {
+		panic(err)
+	}
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("%supload", BASE_URL), postbody)
+	if err != nil {
+		panic(err)
+	}
+
+	req.Header.Add("Content-Type", writer.FormDataContentType())
+
+	client := &http.Client{}
+
+	// Send the request
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	// Sanitize reply and return it
+	return captionBot.URLCaption(string(SanitizeCaptionByteArray(body)))
 }
