@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -190,19 +190,14 @@ func (captionBot *CaptionBot) UploadCaption(fileName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	fileContents, err := ioutil.ReadAll(file)
-	if err != nil {
-		return "", err
-	}
-
-	file.Close()
+	defer file.Close()
 
 	// Prepare the post
 	mimetype := mime.TypeByExtension(filepath.Ext(fileName))
 
 	postbody := new(bytes.Buffer)
 	writer := multipart.NewWriter(postbody)
+	defer writer.Close()
 
 	h := make(textproto.MIMEHeader)
 	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"; filename="%s"`, "file", filepath.Base(fileName)))
@@ -212,11 +207,8 @@ func (captionBot *CaptionBot) UploadCaption(fileName string) (string, error) {
 		return "", err
 	}
 
-	// Write the content
-	part.Write(fileContents)
-
-	err = writer.Close()
-	if err != nil {
+	// Copy file content directly into part; no need to read contents into memory
+	if _, err := io.Copy(part, file); err != nil {
 		return "", err
 	}
 
