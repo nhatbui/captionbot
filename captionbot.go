@@ -80,10 +80,10 @@ func CreateCaptionTask(data bytes.Buffer) error {
 	}
 	req.Header.Add("Content-Type", "application/json; charset=utf8")
 	resp, postErr := client.Do(req)
-	defer resp.Body.Close()
 	if postErr != nil {
 		return postErr
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		return fmt.Errorf("Non 2XX status code when POST-ing caption task.")
@@ -127,10 +127,10 @@ func SanitizeCaptionString(caption string) string {
 // This is a session variable used in the state struct.
 func (captionBot *CaptionBot) Initialize() error {
 	resp, getErr := http.Get(BASE_URL + "init")
-	defer resp.Body.Close()
 	if getErr != nil {
 		return getErr
 	}
+	defer resp.Body.Close()
 
 	bodyByteArray, bodyErr := ioutil.ReadAll(resp.Body)
 	if bodyErr != nil {
@@ -181,10 +181,10 @@ func (captionBot *CaptionBot) URLCaption(url string) (string, error) {
 	// Actually Query for Caption
 	queryURL := BASE_URL + "/message"
 	resp, getErr := http.Get(queryURL + "?" + v.Encode())
-	defer resp.Body.Close()
 	if getErr != nil {
 		return "", getErr
 	}
+	defer resp.Body.Close()
 
 	// they return a json as string; unmarshal it into a string first then into caption bot response type
 	var response string
@@ -264,8 +264,8 @@ func (captionBot *CaptionBot) UploadCaption(fileName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	defer resp.Body.Close()
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
