@@ -100,28 +100,6 @@ func MakeValuesFromState(imgURL string, state CaptionBotClientState) url.Values 
 	return v
 }
 
-// Sanitize raw caption response from GET request.
-// Currently, this method will:
-// 1) remove starting and trailing double-quotes.
-// 2) replace escaped double-quotes with double-quotes.
-func SanitizeCaptionByteArray(data []byte) []byte {
-	// Remove starting and trailing double-quotes
-	trimmed := data[1 : len(data)-1]
-
-	// Replace escaped double-quote with regular double-quote
-	unescaped := strings.Replace(string(trimmed), "\\\"", "\"", -1)
-
-	return []byte(unescaped)
-}
-
-// Sanitize caption string.
-// Currently, this method will:
-// 1) remove escaped newlines with newlines.
-func SanitizeCaptionString(caption string) string {
-	// Replace escaped newlines with regular newlines
-	return strings.Replace(caption, "\\n", "\n", -1)
-}
-
 // Send request to /init endpoint to retrieve conversationId.
 // This is a session variable used in the state struct.
 func (captionBot *CaptionBot) Initialize() error {
@@ -262,16 +240,12 @@ func (captionBot *CaptionBot) UploadCaption(fileName string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
+	// read body directly into a string
+	var body string
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 		return "", err
 	}
 
 	// Sanitize reply and return it
-	urlCaption, err := captionBot.URLCaption(string(SanitizeCaptionByteArray(body)))
-	if err != nil {
-		return "", err
-	}
-
-	return urlCaption, nil
+	return captionBot.URLCaption(body)
 }
