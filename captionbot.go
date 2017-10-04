@@ -72,14 +72,13 @@ func New() (*CaptionBot, error) {
 // Result will need to be retrieved by a subsequent GET request
 // with the same parameters used here.
 func CreateCaptionTask(data bytes.Buffer) error {
-	client := &http.Client{}
 	queryURL := BASE_URL + "/message"
 	req, err := http.NewRequest("POST", queryURL, &data)
 	if err != nil {
 		return err
 	}
 	req.Header.Add("Content-Type", "application/json; charset=utf8")
-	resp, postErr := client.Do(req)
+	resp, postErr := http.DefaultClient.Do(req)
 	if postErr != nil {
 		return postErr
 	}
@@ -256,10 +255,8 @@ func (captionBot *CaptionBot) UploadCaption(fileName string) (string, error) {
 
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 
-	client := &http.Client{}
-
 	// Send the request
-	resp, err := client.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", err
 	}
