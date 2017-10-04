@@ -58,14 +58,14 @@ type CaptionBotConnection interface {
 }
 
 func New() (*CaptionBot, error) {
-    var err error
-    cb := &CaptionBot{}
-    err = cb.Initialize()
-    if err != nil {
-        return cb, err
-    }
+	var err error
+	cb := &CaptionBot{}
+	err = cb.Initialize()
+	if err != nil {
+		return cb, err
+	}
 
-    return cb, nil
+	return cb, nil
 }
 
 // POST request that starts a URL caption request on the server.
@@ -75,9 +75,9 @@ func CreateCaptionTask(data bytes.Buffer) error {
 	client := &http.Client{}
 	queryURL := BASE_URL + "/message"
 	req, err := http.NewRequest("POST", queryURL, &data)
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 	req.Header.Add("Content-Type", "application/json; charset=utf8")
 	resp, postErr := client.Do(req)
 	defer resp.Body.Close()
@@ -89,7 +89,7 @@ func CreateCaptionTask(data bytes.Buffer) error {
 		return fmt.Errorf("Non 2XX status code when POST-ing caption task.")
 	}
 
-    return nil
+	return nil
 }
 
 // Create Values struct from state struct
@@ -138,7 +138,7 @@ func (captionBot *CaptionBot) Initialize() error {
 	}
 
 	captionBot.state.conversationId = strings.Trim(string(bodyByteArray[:]), "\"")
-    return nil
+	return nil
 }
 
 // Entry method for getting caption for image pointed to by URL.
@@ -147,7 +147,7 @@ func (captionBot *CaptionBot) Initialize() error {
 func (captionBot *CaptionBot) URLCaption(url string) (string, error) {
 	var err error
 
-    if captionBot.state.conversationId == "" {
+	if captionBot.state.conversationId == "" {
 		return "", fmt.Errorf(`CaptionBot not initialize.\n
                               Please call CaptionBot::Initialize().`)
 	}
@@ -172,8 +172,8 @@ func (captionBot *CaptionBot) URLCaption(url string) (string, error) {
 	var data bytes.Buffer
 	data.Write(jsonData)
 	if err = CreateCaptionTask(data); err != nil {
-        return "", err
-    }
+		return "", err
+	}
 
 	// Create Values struct for URL encoded params
 	v := MakeValuesFromState(url, captionBot.state)
@@ -186,19 +186,15 @@ func (captionBot *CaptionBot) URLCaption(url string) (string, error) {
 		return "", getErr
 	}
 
-	captionRawData, readBodyErr := ioutil.ReadAll(resp.Body)
-	if readBodyErr != nil {
-		return "", readBodyErr
+	// they return a json as string; unmarshal it into a string first then into caption bot response type
+	var response string
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return "", err
 	}
-
-	// We need to format the returned string so Golang can unmarshal it.
-	// 1. Trim() double-quotes from start and end.
-	// 2. Remove escaped double-quotes in JSON.
-	captionData := SanitizeCaptionByteArray(captionRawData)
 
 	// Unmarshal it
 	var captionJSON CaptionBotResponse
-	captionJSONErr := json.Unmarshal(captionData, &captionJSON)
+	captionJSONErr := json.Unmarshal([]byte(response), &captionJSON)
 	if captionJSONErr != nil {
 		return "", captionJSONErr
 	}
@@ -277,9 +273,9 @@ func (captionBot *CaptionBot) UploadCaption(fileName string) (string, error) {
 
 	// Sanitize reply and return it
 	urlCaption, err := captionBot.URLCaption(string(SanitizeCaptionByteArray(body)))
-    if err != nil {
-        return "", err
-    }
+	if err != nil {
+		return "", err
+	}
 
-    return urlCaption, nil
+	return urlCaption, nil
 }
