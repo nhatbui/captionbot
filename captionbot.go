@@ -1,4 +1,4 @@
-// Simple API wrapper for https://www.captionbot.ai/.
+// Package captionbot is a simple API wrapper for https://www.captionbot.ai/
 package captionbot
 
 import (
@@ -15,42 +15,42 @@ import (
 	"path/filepath"
 )
 
-// Root path of Caption Bot URL.
+// BaseURL is the root path of Caption Bot URL.
 // All requests will be paths starting from here.
-var BASE_URL = "https://www.captionbot.ai/api/"
+var BaseURL = "https://www.captionbot.ai/api/"
 
-// Struct to hold data for API URL caption requests.
+// CaptionBotRequest is a struct to hold data for API URL caption requests.
 type CaptionBotRequest struct {
-	ConversationId string `json:"conversationId"`
+	ConversationID string `json:"conversationID"`
 	UserMessage    string `json:"userMessage"`
 	WaterMark      string `json:"waterMark"`
 }
 
-// Struct to hold data for API URL caption responses.
+// CaptionBotResponse is a struct to hold data for API URL caption responses.
 type CaptionBotResponse struct {
-	ConversationId string
+	ConversationID string
 	UserMessage    string
 	WaterMark      string
 	Status         string
 	BotMessages    []string
 }
 
-// Struct to hold "session" state.
-// 1) conversationId: given during call to Initialize()
+// CaptionBotClientState is a struct to hold "session" state.
+// 1) conversationID: given during call to Initialize()
 //                    Should be used for subsequent requests.
 // 2) waterMark:      is updated per URL caption response.
 // (Note: consequences of not maintaining state is unknown.)
 type CaptionBotClientState struct {
 	waterMark      string
-	conversationId string
+	conversationID string
 }
 
-// Struct representing one session with CaptionBot.
+// CaptionBot is a struct representing one session with CaptionBot.
 type CaptionBot struct {
 	state CaptionBotClientState
 }
 
-// Interface for methods for one CaptionBot session.
+// CaptionBotConnection is an interface for methods for one CaptionBot session.
 type CaptionBotConnection interface {
 	URLCaption(url string) (string, error)
 	Initialize() error
@@ -58,6 +58,7 @@ type CaptionBotConnection interface {
 
 var _ CaptionBotConnection = (*CaptionBot)(nil)
 
+// New creates and initializes a new CaptionBot object
 func New() (*CaptionBot, error) {
 	var err error
 	cb := &CaptionBot{}
@@ -69,11 +70,11 @@ func New() (*CaptionBot, error) {
 	return cb, nil
 }
 
-// POST request that starts a URL caption request on the server.
-// Result will need to be retrieved by a subsequent GET request
-// with the same parameters used here.
+// CreateCaptionTask is the request that starts a URL caption request on the
+// server. Result will need to be retrieved by a subsequent GET request with the
+// same parameters used here.
 func CreateCaptionTask(data bytes.Buffer) error {
-	queryURL := BASE_URL + "/message"
+	queryURL := BaseURL + "/message"
 	req, err := http.NewRequest("POST", queryURL, &data)
 	if err != nil {
 		return err
@@ -86,47 +87,47 @@ func CreateCaptionTask(data bytes.Buffer) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return fmt.Errorf("Non 2XX status code when POST-ing caption task.")
+		return fmt.Errorf("non 2XX status code when POST-ing caption task")
 	}
 
 	return nil
 }
 
-// Create Values struct from state struct
+// MakeValuesFromState creates values struct from state struct
 func MakeValuesFromState(imgURL string, state CaptionBotClientState) url.Values {
 	v := url.Values{}
-	v.Set("conversationId", state.conversationId)
+	v.Set("conversationID", state.conversationID)
 	v.Set("userMessage", imgURL)
 	v.Set("waterMark", state.waterMark)
 	return v
 }
 
-// Send request to /init endpoint to retrieve conversationId.
+// Initialize sends request to /init endpoint to retrieve conversationID.
 // This is a session variable used in the state struct.
 func (captionBot *CaptionBot) Initialize() error {
-	resp, err := http.Get(BASE_URL + "init")
+	resp, err := http.Get(BaseURL + "init")
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	return json.NewDecoder(resp.Body).Decode(&captionBot.state.conversationId)
+	return json.NewDecoder(resp.Body).Decode(&captionBot.state.conversationID)
 }
 
-// Entry method for getting caption for image pointed to by URL.
+// URLCaption is the entry method for getting caption for image pointed to by URL.
 // Performs a POST request to start the caption task.
 // Then performs a GET request to retrieve the result.
 func (captionBot *CaptionBot) URLCaption(url string) (string, error) {
 	var err error
 
-	if captionBot.state.conversationId == "" {
-		return "", fmt.Errorf(`CaptionBot not initialize.\n
-                              Please call CaptionBot::Initialize().`)
+	if captionBot.state.conversationID == "" {
+		return "", fmt.Errorf(`captionBot not initialize.\n
+                              Please call CaptionBot::Initialize()`)
 	}
 
 	// Create JSON data from state for POST request
 	requestData := CaptionBotRequest{
-		ConversationId: captionBot.state.conversationId,
+		ConversationID: captionBot.state.conversationID,
 		UserMessage:    url,
 		WaterMark:      captionBot.state.waterMark,
 	}
@@ -150,7 +151,7 @@ func (captionBot *CaptionBot) URLCaption(url string) (string, error) {
 	v := MakeValuesFromState(url, captionBot.state)
 
 	// Actually Query for Caption
-	queryURL := BASE_URL + "/message"
+	queryURL := BaseURL + "/message"
 	resp, err := http.Get(queryURL + "?" + v.Encode())
 	if err != nil {
 		return "", err
@@ -212,7 +213,7 @@ func (captionBot *CaptionBot) UploadCaption(fileName string) (string, error) {
 		return "", err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%supload", BASE_URL), postbody)
+	req, err := http.NewRequest("POST", fmt.Sprintf("%supload", BaseURL), postbody)
 	if err != nil {
 		return "", err
 	}
