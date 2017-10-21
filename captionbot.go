@@ -1,4 +1,3 @@
-// Package captionbot is a simple API wrapper for https://www.captionbot.ai/
 package captionbot
 
 import (
