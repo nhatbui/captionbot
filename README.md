@@ -1,6 +1,6 @@
 # captionbot
 
-Captionbot is a simple API wrapper for https://www.captionbot.ai/
+Captionbot is a simple Go API wrapper for https://www.captionbot.ai/
 
 ## Installation
 
